@@ -1,7 +1,6 @@
 const db = require("../config/database");
-const path = require('path');
-const fs = require('fs');
-
+const path = require("path");
+const fs = require("fs");
 
 module.exports = {
   delete_music: (req, res) => {
@@ -33,8 +32,9 @@ module.exports = {
       "album",
       "genre",
       "release_year",
+      "duration",
       "imageFile",
-      "audioFile"
+      "audioFile",
     ];
 
     const missingFields = requiredFields.filter((field) => !req.body[field]);
@@ -55,7 +55,7 @@ module.exports = {
         }
         if (result) {
           db.query(
-            "INSERT INTO music (id, title, artist, album, genre, release_year, image, audio) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO music (id, title, artist, album, genre, release_year, duration, image, audio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
               req.body.id,
               req.body.title,
@@ -63,9 +63,9 @@ module.exports = {
               req.body.album,
               req.body.genre,
               req.body.release_year,
+              req.body.duration,
               req.body.imageFile,
               req.body.audioFile,
-
             ],
             (err, result) => {
               if (err) {
@@ -91,7 +91,6 @@ module.exports = {
         msg: "Error adding song",
       });
     }
-
   },
 
   edit_music: (req, res) => {
@@ -101,9 +100,10 @@ module.exports = {
       album,
       genre,
       release_year,
+      duration,
       imageFile,
       audioFile,
-      id
+      id,
     } = req.body;
 
     db.query(
@@ -112,11 +112,30 @@ module.exports = {
       artist = IF(LENGTH(?) = 0, artist, ?),
       album = IF(LENGTH( ? ) = 0, album , ? ),
       genre = IF(LENGTH( ? ) = 0, genre, ? ),
-      release_year = IF(LENGTH(?) = 0, ?, release_year),
+      release_year = IF( LENGTH(?) = 0,release_year, ?),
+      duration = IF(LENGTH(?) = 0, duration, ?),
       image = IF( ? IS NULL, image, ? ),
       audio = IF( ? IS NULL, audio, ? )
       WHERE id = ?`,
-      [title, title, artist, artist, album, album, genre, genre, release_year, release_year, imageFile, imageFile, audioFile, audioFile, id],
+      [
+        title,
+        title,
+        artist,
+        artist,
+        album,
+        album,
+        genre,
+        genre,
+        release_year,
+        release_year,
+        duration,
+        duration,
+        imageFile,
+        imageFile,
+        audioFile,
+        audioFile,
+        id,
+      ],
       (err, result) => {
         if (err) {
           return res.status(500).send({
@@ -126,7 +145,7 @@ module.exports = {
         } else {
           return res.status(200).send({
             msg: "The song has been updated in database!",
-            result: result.affectedRow,
+            result: result.affectedRows,
             isUpdate: true,
           });
         }
@@ -142,6 +161,7 @@ module.exports = {
           msg: "Something went wrong",
         });
       } else {
+        res.setHeader("Content-Type", "application/json");
         return res.status(200).send({
           list_music: result,
         });
@@ -150,9 +170,15 @@ module.exports = {
   },
 
   search_music: (req, res) => {
+    const searchItem = req.body.search_item;
     db.query(
-      `SELECT * FROM cars WHERE title LIKE ? AND artist LIKE ? AND title LIKE ?  AND genre LIKE ?`,
-      [`%${req.body.search_item}%`],
+      `SELECT * FROM music WHERE title LIKE ? OR artist LIKE ? OR album LIKE ?  OR genre LIKE ?`,
+      [
+        `%${searchItem}%`,
+        `%${searchItem}%`,
+        `%${searchItem}%`,
+        `%${searchItem}%`,
+      ],
       (err, result) => {
         if (err) {
           console.log("error", err);
@@ -160,11 +186,17 @@ module.exports = {
             error: err,
           });
         }
-        return res.status(200).send({
-          list_music: result,
-        });
+        if (result.length === 0) {
+          return res.status(200).send({
+            search_result: `No results found for search term: ${searchItem}`,
+          });
+        } else {
+          res.setHeader("Content-Type", "application/json");
+          return res.status(200).send({
+            search_result: result,
+          });
+        }
       }
     );
   },
-
 };
