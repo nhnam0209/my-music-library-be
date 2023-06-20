@@ -1,5 +1,5 @@
 const db = require("../config/database");
-const path = require("path");
+// const path = require("path");
 const fs = require("fs");
 
 module.exports = {
@@ -38,7 +38,6 @@ module.exports = {
     ];
 
     const missingFields = requiredFields.filter((field) => !req.body[field]);
-
     if (missingFields.length > 0) {
       return res.status(400).send({
         msg: "Missing fields in request body: " + missingFields.join(", "),
@@ -192,8 +191,21 @@ module.exports = {
           });
         } else {
           res.setHeader("Content-Type", "application/json");
+          var dataResult = null
+          for (let i = 0; i < result.length; i++) {
+            var data = result[i].audio;
+            // dataResult = fs.writeFile(`./audio/${result[i].id}.mp3`, data, (err) => {
+            //   if (err) throw err;
+            //   res.sendFile(`./audio/${result[i].id}.mp3`, {
+            //     root: __dirname
+            //   });
+            // })
+            console.log(data)
+          }
           return res.status(200).send({
+            search_data: dataResult,
             search_result: result,
+
           });
         }
       }
